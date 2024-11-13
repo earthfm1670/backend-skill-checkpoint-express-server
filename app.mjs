@@ -274,7 +274,8 @@ app.post("/questions/:questionId/vote", async (req, res) => {
   try {
     await connectionPool.query(
       `
-      INSERT INTO question_votes ($1, $2)
+      INSERT INTO question_votes (question_id, vote)
+      VALUES ($1, $2)
       `,
       [questionId, newVote.vote]
     );
@@ -305,7 +306,8 @@ app.post("/answers/:answerId/vote", async (req, res) => {
   try {
     await connectionPool.query(
       `
-      INSERT INTO answer_votes ($1, $2)
+      INSERT INTO answer_votes (answer_id, vote)
+      VALUES ($1, $2)
       `,
       [answerId, newVote.vote]
     );
