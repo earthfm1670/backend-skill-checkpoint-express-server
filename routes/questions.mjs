@@ -4,6 +4,34 @@ import connectionPool from "./../utils/db.mjs";
 const questionsRouter = Router();
 
 ///////////////////// QUESTIONS
+
+/**
+ * @swagger
+ * /questions:
+ *   post:
+ *     summary: Create a new question
+ *     description: Create a new question with a title, description, and category.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Question created successfully
+ *       400:
+ *         description: Invalid request data
+ *       500:
+ *         description: Unable to create question
+ */
 questionsRouter.post("/", async (req, res) => {
   const newQuestion = req.body;
   if (!newQuestion.title || !newQuestion.description || !newQuestion.category) {
@@ -28,6 +56,32 @@ questionsRouter.post("/", async (req, res) => {
 });
 
 ////////// Search higher prio than :id
+
+/**
+ * @swagger
+ * /questions/search:
+ *   get:
+ *     summary: Search for questions
+ *     description: Search for questions by title or category.
+ *     parameters:
+ *       - in: query
+ *         name: title
+ *         schema:
+ *           type: string
+ *         description: The title of the question.
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: The category of the question.
+ *     responses:
+ *       200:
+ *         description: List of questions matching the search criteria
+ *       400:
+ *         description: Invalid search parameters
+ *       500:
+ *         description: Unable to fetch questions
+ */
 questionsRouter.get("/search", async (req, res) => {
   const category = req.query.category;
   const title = req.query.title;
@@ -63,6 +117,27 @@ questionsRouter.get("/search", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /questions/{questionId}:
+ *   get:
+ *     summary: Get a specific question
+ *     description: Retrieve a question by its ID.
+ *     parameters:
+ *       - in: path
+ *         name: questionId
+ *         required: true
+ *         description: The ID of the question to retrieve.
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: The question details
+ *       404:
+ *         description: Question not found
+ *       500:
+ *         description: Unable to fetch question
+ */
 questionsRouter.get("/:questionId", async (req, res) => {
   const questionId = req.params.questionId;
   try {
@@ -83,6 +158,27 @@ questionsRouter.get("/:questionId", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /questions/{questionId}:
+ *   get:
+ *     summary: Get a specific question
+ *     description: Retrieve a question by its ID.
+ *     parameters:
+ *       - in: path
+ *         name: questionId
+ *         required: true
+ *         description: The ID of the question to retrieve.
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: The question details
+ *       404:
+ *         description: Question not found
+ *       500:
+ *         description: Unable to fetch question
+ */
 questionsRouter.get("/", async (req, res) => {
   try {
     let result = await connectionPool.query(`
@@ -96,6 +192,67 @@ questionsRouter.get("/", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /questions:
+ *   get:
+ *     summary: Get all questions
+ *     description: Retrieve a list of all questions.
+ *     responses:
+ *       200:
+ *         description: A list of all questions
+ *       500:
+ *         description: Unable to fetch questions
+ */
+questionsRouter.get("/", async (req, res) => {
+  try {
+    let result = await connectionPool.query(`
+        SELECT * FROM questions
+        `);
+    return res.status(200).json(result.rows);
+  } catch {
+    return res.status(500).json({
+      message: "Unable to fetch questions",
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /questions/{questionId}:
+ *   put:
+ *     summary: Update a question
+ *     description: Update the details of a question by its ID.
+ *     parameters:
+ *       - in: path
+ *         name: questionId
+ *         required: true
+ *         description: The ID of the question to update.
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Question updated successfully
+ *       400:
+ *         description: Invalid request data
+ *       404:
+ *         description: Question not found
+ *       500:
+ *         description: Unable to update question
+ */
 questionsRouter.put("/:questionId", async (req, res) => {
   const questionId = req.params.questionId;
   const updateQuestion = req.body;
@@ -139,6 +296,27 @@ questionsRouter.put("/:questionId", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /questions/{questionId}:
+ *   delete:
+ *     summary: Delete a question
+ *     description: Delete a question by its ID.
+ *     parameters:
+ *       - in: path
+ *         name: questionId
+ *         required: true
+ *         description: The ID of the question to delete.
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Question deleted successfully
+ *       404:
+ *         description: Question not found
+ *       500:
+ *         description: Unable to delete question
+ */
 questionsRouter.delete("/:questionId", async (req, res) => {
   const questionId = req.params.questionId;
   try {
