@@ -14,7 +14,7 @@ app.listen(port, () => {
   console.log(`Server is running at ${port}`);
 });
 
-/////////////////////
+///////////////////// QUESTIONS
 
 app.post("/questions", async (req, res) => {
   const newQuestion = req.body;
@@ -86,3 +86,61 @@ app.get("/questions", async (req, res) => {
     });
   }
 });
+
+app.put("/questions/:id", async (req, res) => {
+  const questionId = req.params.id;
+  const updateQuestion = req.body;
+  try {
+    await connectionPool.query(
+      `
+      UPDATE questions
+      SET title = $2,
+      category = $3,
+      description = $4
+      WHERE id = $1
+      `,
+      [
+        questionId,
+        updateQuestion.title,
+        updateQuestion.category,
+        updateQuestion.description,
+      ]
+    );
+    return res.status(200).json({
+      message: "Update question successfully",
+    });
+  } catch {
+    return res.status(500).json({
+      message: "Server could not update question because database connection",
+    });
+  }
+});
+
+app.delete("/questions/:id", async (req, res) => {
+  const questionId = req.params.id;
+  try {
+    let result = await connectionPool.query(
+      `
+      DELETE FROM questions where id = $1
+      `,
+      [questionId]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        message: "Server could not find the requested question to delete",
+      });
+    }
+    return res.status(200).json({
+      message: "Deleted post successfully",
+    });
+  } catch {
+    res.status(500).json({
+      message: "Server could not delete question because database connection",
+    });
+  }
+});
+
+////////// COMMENTS
+app.post("/answers", async (req, res) => {
+  const newAnswer = req.body
+})
