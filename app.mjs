@@ -193,9 +193,14 @@ app.post("/questions/:questionId/answers", async (req, res) => {
       `,
       [questionId, newAnswer.content]
     );
-    if (!newAnswer) {
+    if (!newAnswer.content) {
       return res.status(400).json({
         message: "Invalid request data",
+      });
+    }
+    if (!newAnswer.content.length > 300) {
+      return res.status(400).json({
+        message: "Answer must be 300 characters or less",
       });
     }
     return res.status(201).json({
@@ -273,7 +278,7 @@ app.post("/questions/:questionId/vote", async (req, res) => {
       `,
       [questionId, newVote.vote]
     );
-    if (!newVote) {
+    if (!newVote.vote) {
       return res.status(400).json({
         message: "Invalid vote value",
       });
@@ -304,7 +309,7 @@ app.post("/answers/:answerId/vote", async (req, res) => {
       `,
       [answerId, newVote.vote]
     );
-    if (!newVote) {
+    if (!newVote.vote) {
       return res.status(400).json({
         message: "Invalid vote value",
       });
