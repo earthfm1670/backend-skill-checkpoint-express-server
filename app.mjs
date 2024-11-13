@@ -20,8 +20,7 @@ app.post("/questions", async (req, res) => {
   const newQuestion = req.body;
   if (!newQuestion.title || !newQuestion.description || !newQuestion.category) {
     return res.status(400).json({
-      message:
-        "Server could not create question because there are missing data from client",
+      message: "Invalid request data",
     });
   }
   try {
@@ -31,17 +30,53 @@ app.post("/questions", async (req, res) => {
       [newQuestion.title, newQuestion.description, newQuestion.category]
     );
     return res.status(201).json({
-      message: `Question id: .... has been created successfully`,
+      message: `Question created successfully`,
     });
   } catch {
     return res.status(500).json({
-      message: `Server could not create question because database connection`,
+      message: `Unable to create question`,
     });
   }
 });
 
-app.get("/questions/:id", async (req, res) => {
-  const questionId = req.params.id;
+////////// Search higher prio than :id
+app.get("/questions/search", async (req, res) => {
+  const category = req.query.category;
+  const title = req.query.title;
+
+  if (!title && !category) {
+    return res.status(400).json({
+      message: "Invalid search parameter",
+    });
+  }
+
+  try {
+    let query = "SELECT * FROM questions";
+    let values = [];
+    if (title && category) {
+      query += " WHERE category ilike $1 and title ilike $2";
+      values = [`%${category}%`, `%${title}%`];
+    } else if (title) {
+      query += " WHERE title ilike $1";
+      values = [`%${title}%`];
+    } else if (category) {
+      query += " WHERE category ilike $1";
+      values = [`%${category}%`];
+    }
+    const result = await connectionPool.query(query, values);
+
+    return res.status(200).json({
+      data: result.rows,
+    });
+  } catch {
+    return res.status(500).json({
+      message: "Unable to fetch a question",
+    });
+  }
+});
+
+app.get("/questions/:questionId", async (req, res) => {
+  const questionId = req.params.questionId;
   try {
     let result = await connectionPool.query(
       `SELECT * FROM questions WHERE id=$1`,
@@ -49,49 +84,35 @@ app.get("/questions/:id", async (req, res) => {
     );
     if (result.rowCount === 0) {
       return res.status(404).json({
-        message: "Server could not find a requested question",
+        message: "Question not found",
       });
     }
     return res.status(200).json(result.rows);
   } catch {
     return res.status(500).json({
-      message: "Server could not read question because database connection",
+      message: "Unable to fetch question",
     });
   }
 });
 
 app.get("/questions", async (req, res) => {
-  const category = req.query.category;
-  const keywords = req.query.keywords;
   try {
-    let query = "SELECT * FROM questions";
-    let values = [];
-    if (keywords && category) {
-      query += " WHERE category ilike $1 and title ilike $2";
-      values = [`%${category}%`, `%${keywords}%`];
-    } else if (keywords) {
-      query += " WHERE title ilike $1";
-      values = [`%${keywords}%`];
-    } else if (category) {
-      query += " WHERE category ilike $1";
-      values = [`%${category}%`];
-    }
-    const result = await connectionPool.query(query, values);
-    return res.status(200).json({
-      data: result.rows,
-    });
+    let result = await connectionPool.query(`
+      SELECT * FROM questions
+      `);
+    return res.status(200).json(result.rows);
   } catch {
     return res.status(500).json({
-      message: "Server could not read question because database connection",
+      message: "Unable to fetch questions",
     });
   }
 });
 
-app.put("/questions/:id", async (req, res) => {
-  const questionId = req.params.id;
+app.put("/questions/:questionId", async (req, res) => {
+  const questionId = req.params.questionId;
   const updateQuestion = req.body;
   try {
-    await connectionPool.query(
+    let result = await connectionPool.query(
       `
       UPDATE questions
       SET title = $2,
@@ -106,18 +127,32 @@ app.put("/questions/:id", async (req, res) => {
         updateQuestion.description,
       ]
     );
+    if (
+      !updateQuestion.title ||
+      !updateQuestion.category ||
+      !updateQuestion.description
+    ) {
+      return res.status(400).json({
+        message: "Invalid request data",
+      });
+    }
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        message: "Question not found",
+      });
+    }
     return res.status(200).json({
-      message: "Update question successfully",
+      message: "Question updated successfully",
     });
   } catch {
     return res.status(500).json({
-      message: "Server could not update question because database connection",
+      message: "Unable to fetch question",
     });
   }
 });
 
-app.delete("/questions/:id", async (req, res) => {
-  const questionId = req.params.id;
+app.delete("/questions/:questionId", async (req, res) => {
+  const questionId = req.params.questionId;
   try {
     let result = await connectionPool.query(
       `
@@ -127,20 +162,47 @@ app.delete("/questions/:id", async (req, res) => {
     );
     if (result.rowCount === 0) {
       return res.status(404).json({
-        message: "Server could not find the requested question to delete",
+        message: "Question not found",
       });
     }
     return res.status(200).json({
-      message: "Deleted post successfully",
+      message: "Question post has been deleted successfully",
     });
   } catch {
     res.status(500).json({
-      message: "Server could not delete question because database connection",
+      message: "Unable to delete question",
     });
   }
 });
 
-////////// COMMENTS
-app.post("/answers", async (req, res) => {
-  const newAnswer = req.body
-})
+app.post("/questions/:questionId/answers", async (req, res) => {
+  const questionId = req.params.questionId;
+  const newAnswer = req.body;
+
+  if (!questionId) {
+    return res.status(404).json({
+      message: "Question not found",
+    });
+  }
+  try {
+    await connectionPool.query(
+      `
+      INSERT INTO answers (question_id, content)
+      VALUES ($1, $2)
+      `,
+      [questionId, newAnswer.content]
+    );
+    if (!newAnswer) {
+      return res.status(400).json({
+        message: "Invalid request data",
+      });
+    }
+    return res.status(201).json({
+      message: "Answer created successfully",
+    });
+  } catch {
+    return res.status(500).json({
+      message: "Unable to create answers.",
+    });
+  }
+});
