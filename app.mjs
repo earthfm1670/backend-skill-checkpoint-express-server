@@ -175,6 +175,7 @@ app.delete("/questions/:questionId", async (req, res) => {
   }
 });
 
+//////// ANSWERS
 app.post("/questions/:questionId/answers", async (req, res) => {
   const questionId = req.params.questionId;
   const newAnswer = req.body;
@@ -203,6 +204,117 @@ app.post("/questions/:questionId/answers", async (req, res) => {
   } catch {
     return res.status(500).json({
       message: "Unable to create answers.",
+    });
+  }
+});
+
+app.get("/questions/:questionId/answers", async (req, res) => {
+  const questionId = req.params.questionId;
+
+  try {
+    let result = await connectionPool.query(
+      `
+      SELECT * FROM answers where id=$1
+      `,
+      [questionId]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        message: "Question not found",
+      });
+    }
+    return res.status(200).json(result.rows);
+  } catch {
+    return res.status(500).json({
+      message: "Unable to fetch answers",
+    });
+  }
+});
+
+app.delete("/questions/:questionId/answers", async (req, res) => {
+  const questionId = req.params.questionId;
+
+  try {
+    let result = await connectionPool.query(
+      `
+      DELETE FROM answers where id=$1
+      `,
+      [questionId]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        message: "Question not found",
+      });
+    }
+    return res.status(200).json({
+      message: "All answers for the question have been deleted successfully",
+    });
+  } catch {
+    return res.status(500).json({
+      message: "Unable to delete answers",
+    });
+  }
+});
+
+//////// VOTE
+app.post("/questions/:questionId/vote", async (req, res) => {
+  const questionId = req.params.questionId;
+  const newVote = req.body;
+
+  if (!questionId) {
+    return res.status(404).json({
+      message: "Question not found",
+    });
+  }
+  try {
+    await connectionPool.query(
+      `
+      INSERT INTO question_votes ($1, $2)
+      `,
+      [questionId, newVote.vote]
+    );
+    if (!newVote) {
+      return res.status(400).json({
+        message: "Invalid vote value",
+      });
+    }
+    return res.status(200).json({
+      message: "Vote on the question has been recorded successfully",
+    });
+  } catch {
+    return res.status(500).json({
+      message: "Unable to vote question.",
+    });
+  }
+});
+
+app.post("/answers/:answerId/vote", async (req, res) => {
+  const answerId = req.params.answerId;
+  const newVote = req.body;
+
+  if (!answerId) {
+    return res.status(404).json({
+      message: "Answer not found",
+    });
+  }
+  try {
+    await connectionPool.query(
+      `
+      INSERT INTO answer_votes ($1, $2)
+      `,
+      [answerId, newVote.vote]
+    );
+    if (!newVote) {
+      return res.status(400).json({
+        message: "Invalid vote value",
+      });
+    }
+    return res.status(200).json({
+      message: "Vote on the answer has been recorded successfully",
+    });
+  } catch {
+    return res.status(500).json({
+      message: "Unable to vote answer",
     });
   }
 });
