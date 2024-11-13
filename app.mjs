@@ -59,3 +59,30 @@ app.get("/questions/:id", async (req, res) => {
     });
   }
 });
+
+app.get("/questions", async (req, res) => {
+  const category = req.query.category;
+  const keywords = req.query.keywords;
+  try {
+    let query = "SELECT * FROM questions";
+    let values = [];
+    if (keywords && category) {
+      query += " WHERE category ilike $1 and title ilike $2";
+      values = [`%${category}%`, `%${keywords}%`];
+    } else if (keywords) {
+      query += " WHERE title ilike $1";
+      values = [`%${keywords}%`];
+    } else if (category) {
+      query += " WHERE category ilike $1";
+      values = [`%${category}%`];
+    }
+    const result = await connectionPool.query(query, values);
+    return res.status(200).json({
+      data: result.rows,
+    });
+  } catch {
+    return res.status(500).json({
+      message: "Server could not read question because database connection",
+    });
+  }
+});
